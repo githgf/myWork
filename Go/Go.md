@@ -304,7 +304,9 @@ func main(){
 }
 ```
 
-闭包：闭包是匿名函数，可在动态编程中使用  
+#### 闭包：
+
+闭包是匿名函数，可在动态编程中使用  
 
 闭包的特征就是函数的返回值是一个函数，可以实现延迟执行函数
 
@@ -329,7 +331,9 @@ func add() func(int){
 //61
 ```
 
-方法：一个方法就是一个包含了接受者的函数，接受者可以是命名类型或者结构体类型的一个值或者是一个指针。所有给定类型的方法属于该类型的方法集，类似于java中某一个中定义的方法，
+#### 方法：
+
+一个方法就是一个包含了接受者的函数，接受者可以是命名类型或者结构体类型的一个值或者是一个指针。所有给定类型的方法属于该类型的方法集，类似于java中某一个中类定义的方法，也就是说这个方法只能由指定的类型的对象调用
 
 ```go
 /* 定义结构体 */
@@ -348,7 +352,58 @@ func (c Circle) getArea() float64 {
   //c.radius 即为 Circle 类型对象中的属性
   return 3.14 * c.radius * c.radius
 }
+//另外注意在上面的getArea()中 的c是Circle的一个别名，在调用时会将调用此方法的变量作为实参传入，如果当前变量是值类型，就进行值拷贝，如果是引用类型，就进行地址拷贝
+type Point struct {
+	left int
+	right string
+	mod string
+}
+
+func main()  {
+
+	var point Point
+	point.left = 13
+	fmt.Println("改变前：==> point.left = ",point.left)
+	point.test()
+	fmt.Println("改变后：==>	point.left = ",point.left)
+
+}
+
+func (p Point)test()  {
+	p.left = 12
+	fmt.Println("test() ==> point.left = ",p.left)
+}
+//输出结果
+改变前：==> point.left =  13
+test() ==> point.left =  12
+改变后：==>      point.left =  13
+
+//如果程序要改变结构体中的值
+func (p *Point)testPoint()  {
+	p.left = 12
+}
+（&point).testPoint()
 ```
+
+和函数相类似的是，方法名首字母大写和首字母小写都是控制访问权限。如果一个类型定义了一个String()方法，那么在fmt.Println()默认调用此方法
+
+方法和函数最大区别：
+
+​	函数中如果定义了传递参数是指针类型，那么只能传递指针
+
+​	方法中调用方如果定义了是指针类型，在调用时可以有调用者本身也可以是指向调用者的指针
+
+```markdown
+就拿上文中的 testPoint() 方法，上文中的调用方式如下
+- （&point).testPoint()
+-  但其实也可以这样调用
+	- point.testPoint()
+
+```
+
+
+
+
 
 #### init 函数
 
@@ -357,6 +412,19 @@ init 函数是go语言自带的函数，会在main函数之前使用
 #### 内置函数：
 
 ​	go语言包含了大量的[内置函数](https://studygolang.com/pkgdoc)，这些函数不需要引入任何的包就能使用，new(..),make(...)等等
+
+##### new
+
+```go
+//go语言中的new实际上是一个指向指定类型实例的指针
+i := new(int)
+fmt.Printf("i的类型 %T \n",i)
+//输出结果
+i的类型 *int 
+
+```
+
+
 
 ### 执行顺序
 
@@ -492,7 +560,7 @@ func main() {
 
 ### 结构体
 
-数组中只能定义一种类型，但是结构体中可以定义多种类型，有点类似于java中class
+数组中只能定义一种类型，但是结构体中可以定义多种类型，有点类似于java中class，结构体是值类型
 
 ```go
 //声明定义
@@ -519,11 +587,83 @@ func main () {
 	fmt.Println(book)
 	fmt.Println(Book{author : "lucy",title : "ll"})
 }
+
+//结构体作为函数参数传递和普通类型用法是一样的没有区别
+
+//指向结构体的指针的用法也没什么不同
 ```
 
-结构体作为函数参数传递和普通类型用法是一样的没有区别
 
-指向结构体的指针的用法也没什么不同
+
+使用细节：
+
+​	1.结构体中的字段在内存中是相邻的,就算字段类型是指针就是一样，本身的地址相邻，但是指向的地址不一定相邻
+
+```go
+
+type Point struct {
+	left int
+	right string
+	image *int
+	picture *int
+}
+
+func main(){
+	point := new(Point)
+	point.left = 2
+	point.right = "3"
+	i,l := 2,15
+	point.image = &i
+	point.picture = &l
+
+	fmt.Printf("point 类型：%T\n",&point)
+	fmt.Printf("point.left 地址值：%v \n  ",&point.left)
+	fmt.Printf("pont.right 地址值：%v\n",&point.right)
+	fmt.Printf("point.image 地址值 %v,指向的地址 %p \n",&point.image,point.image)
+	fmt.Printf("point.picture 地址值 %v,指向的地址 %p \n",&point.picture,point.picture)
+}
+//输出结果
+point 类型：**main.Point
+point.left 地址值：0xc00000a080 
+pont.right 地址值：0xc00000a088
+point.image 地址值 0xc00000a090,指向的地址 0xc000016088 
+point.picture 地址值 0xc00000a098,指向的地址 0xc000016090 
+
+```
+
+2.类型转换
+
+```go
+
+type Point struct {
+	left int
+	right string
+	mod string
+}
+//go语言会当成新的类型
+type NewPoint Point
+
+type Lint struct{
+    left int
+    right string
+    mod string
+}
+
+func main()  {
+
+	point := new(Point)
+	newPoint := new(NewPoint)
+    
+    var po Point
+    lint := Lint(po)
+	
+	point = (*Point)(newPoint)
+	fmt.Printf("point ++= %v",point)
+}
+//go语言中只有字段的类型、数量、名字一样才能就行类型转换
+```
+
+
 
 ### 切片（slice）
 
@@ -663,8 +803,12 @@ var countryCapitalMap map[string]string /*创建集合 */
     countryCapitalMap [ "Japan" ] = "东京"
     countryCapitalMap [ "India " ] = "新德里"
 
-    /*使用键输出地图值 */ for country := range countryCapitalMap {
-        fmt.Println(country, "首都是", countryCapitalMap [country])
+    /*使用键输出地图值 */ 
+	for country := range countryCapitalMap {
+        fmt.Printf("%v首都是%v", country, countryCapitalMap [country])
+    }
+	for country,value := range countryCapitalMap {
+        fmt.Printf( "%v首都是%v", country,value)
     }
 
     /*查看元素在集合中是否存在 */
@@ -677,11 +821,22 @@ var countryCapitalMap map[string]string /*创建集合 */
     }
 //删除元素
 delete(countryCapitalMap [ "美国" ] )
+
+/**go对于map排序没有内置函数，如果排序只能对key进行排序**/
+sort.Int(keys)
+
+for _,k range keys{
+    fmt.Printf("map[%v]==%v",k,mapTest[k])
+}
+
+/**map是一个引用类型，如果作为参数传那么如果在函数中修改了其中的值，则直接生效***/
+
 ```
 
 ### 接口
 
 ```go
+//g语言中接口的实现
 type Phone interface{
 	call()
 }
@@ -710,7 +865,34 @@ func main() {
 	phone.call()
 	
 }
+
 ```
+
+和java中接口比较
+
+​	相同点：
+
+​		1.实现接口必须实现接口的所有方法
+
+​		2.接口定义时方法不需要有方法体
+
+​		3.接口不能直接实例化，但可以间接赋值
+
+​	不同点：
+
+​		1.java中接口可以定义变量，Go不能定义非接口非匿名的字段
+
+​		2.java中的接口时显式的实现，Go不用
+
+​		3.java中接口只能由类实现，go中接口可以由自定义的类型实现不一定是结构体
+
+#### 接口的继承
+
+```go
+
+```
+
+
 
 #### 强大的空接口
 
@@ -736,7 +918,11 @@ func describe(i interface{}) {
 类型推断：
 
 ```go
+//因为空接口可以使任意类型
 func do(i interface{}) {
+  	//类型推断返回两个结果，一个是进行转换后的值，也就是下文中 的v，还有一个是boolean类型结果，下文照片那个的result
+  v,k := i.(int)
+  //同时也可以这样使用，但是注意，这里的i是空接口，且只能是空接口
 	switch v := i.(type) {
 	case int:
 		fmt.Printf("Twice %v is %v\n", v, v*2)
@@ -818,6 +1004,90 @@ func testTry(){
   }()
 }
 ```
+
+
+
+## 面向对象的特性
+
+#### 封装
+
+```go
+//go语言实现封装只需要将类作为匿名内部类存在即可
+
+type Person struct{
+	Name string
+}
+
+type Woman struct{
+	Person
+	Age int
+}
+
+type Man struct{
+	Person
+	Hobby int
+}
+
+func (per *Person)say(){
+	fmt.Println("my name is ",per.Name)
+}
+
+func main(){
+	var w Woman
+	var m Man
+	
+	w.Person.Name = "lucy"
+	m.Person.Name = "jack"
+	
+	w.Person.say()
+	m.Person.say()
+  
+  	//同时代码可以简化
+  	w.Name = "lucy"
+	m.Name = "jack"
+	
+	w.say()
+	m.say()
+  
+  //另外一个需要注意的地方，继承的是所有字段包括首字母大写、小写
+	
+}
+```
+
+
+
+## 文件操作
+
+```go
+import (
+	"bufio"
+	"fmt"
+	"io"
+	"os"
+)
+
+func main() {
+	file, error := os.Open("d:/goTest.txt") // For read access.
+	if error != nil {
+		fmt.Println(error)
+	}
+
+	reader := bufio.NewReader(file)
+
+	for {
+		str, end := reader.ReadString('\n')
+		fmt.Println(str)
+		if end == io.EOF {
+			break
+		}
+	}
+
+}
+```
+
+
+
+
 
 
 

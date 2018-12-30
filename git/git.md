@@ -18,9 +18,9 @@
 ​	cat 文件名.格式		查看文件
 ​	vim 文件名.格式		进入文件编辑
 ​	
-	按i键进入插入模式
-	在编辑完之后一定要按esc退出
-	
+​	按i键进入插入模式
+​	在编辑完之后一定要按esc退出
+​	
 	:wq						命令强制保存并退出
 	
 	git add./git add --all	将所有文件保存在缓存区中
@@ -198,9 +198,25 @@ git rebase(merge) --continue
 
 
 
+## commit 
+
+```sh
+#对上一次的提交修改
+#当我们想要对上一次的提交进行修改时，我们可以使用git commit –amend命令。git commit –amend既可以对上次提交的内容进行修改，也可以修改提交说明。
+#--no-edit 配合–amend表示修改提价但不修改提交的信息
+git commit --amend --no-edit
+
+```
+
+
+
+
+
+
+
 ## 案例：
 
-本地代码更新时本地代码没有提交，发生合并错误，但是现在本地代码不想提交到远程
+情景一：本地代码更新时本地代码没有提交，发生合并错误，但是现在本地代码不想提交到远程
 
 解决：
 方案一：
@@ -219,7 +235,9 @@ git cherry-pick b1b360ec54b0a9b795110cefcadca9345dbba44b
 git reset --soft HEAD~1
 #--soft是指代码不会撤销，只是提交的记录撤销
 ```
+
 方案二：
+
 ```shell
 #1.先用fetch拉取远程的代码
 git fetch origin dev
@@ -230,6 +248,91 @@ git merage origin/dev
 #4.从存储栈中拿出本地的临时储存
 git stash pop
 
+```
+
+情景二：将本地多次的commit提交为
+
+现在有一个本地分支提交记录(git log)如下：
+
+```shell
+commit 61834402b96cd6bbb170aaeb40a8c37ff0af1c37 (HEAD -> release)
+Author: linsen <linsen@123feng.com>
+Date:   Sat Dec 22 15:55:29 2018 +0800
+
+    remove test
+
+commit fca71f8b7314bf45b2ad34253bca8adcebc8f600
+Author: linsen <linsen@123feng.com>
+Date:   Sat Dec 22 15:36:07 2018 +0800
+
+    pom 文件修改
+
+commit b8ed50c907e432f6deef8563c6e2eb64a9a810fe (origin/release)
+Author: linsen <linsen@123feng.com>
+Date:   Sat Dec 15 20:16:19 2018 +0800
+
+    excel增加计费单位字段
+
+
+#现在需要将 pom 文件修改<test>，pom 文件修改<message> 合并为一个提交记录
+git rebase -i <commitId>
+#这里的commitId是指在指定 commitId 之前的commit合并为一个，所以我们这里选择b8ed50c907e432f6deef8563c6e2eb64a9a810fe(也就是最后一个)
+#步骤如下：
+git rebase -i fca71f8b7314bf45b2ad34253bca8adcebc8f603
+#此时会出现一个界面
+```
+
+![image-20181222155732195](rebase-i.png)
+
+```
+- pick 		使用本次提交
+- reword 	使用本次提交，但是修改提交的信息
+- edit		使用本次提交，但是停止修改
+- squash	使用本次提交，但是合并到上一个提交
+- fixup		和squash类似，但是放弃提交的信息
+- drop		删除此次提交(如果当前的commit不想要，就可用这种方式)
+
+很显然我们这里需要将 6183440 的提交记录修改为 squash
+pick fca71f8 pom 文件修改
+squash 6183440 remove test
+
+保存退出
+
+此时显示如下界面
+```
+
+![image-20181222160803418](squash.png)
+
+```markdown
+#这里只需要显示最后暴露的commit信息即可，其余都可以注释
+保存退出
+
+最后git log显示如下
+commit 110b8a1ef55a7df426bcc68aefada15ff35d31da (HEAD -> release)
+Author: linsen <linsen@123feng.com>
+Date:   Sat Dec 22 15:36:07 2018 +0800
+
+    pom 文件修改
+
+commit b8ed50c907e432f6deef8563c6e2eb64a9a810fe (origin/release)
+Author: linsen <linsen@123feng.com>
+Date:   Sat Dec 15 20:16:19 2018 +0800
+
+    excel增加计费单位字段
+
+```
+
+## 各种撤销
+
+###撤销已经commit到本地，但是不想push
+
+```shell
+	git reset --soft HEAD~1
+```
+###撤销add文件
+
+```shell
+	git reset HEAD <file>
 ```
 
 ## git pull和git fetch 区别
