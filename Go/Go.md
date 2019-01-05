@@ -833,6 +833,20 @@ for _,k range keys{
 
 ```
 
+值得注意的是map中可以实现类似于struct一样的结构，也就是说key的类型可以不一样
+
+```go
+	testMap1 := make(map[interface{}]interface{})
+	testMap1["hello"] = "world"
+	testMap1[6523] = 123
+	testMap1["name"] = "jack"
+
+	fmt.Printf("6523 ==> %v",testMap1[6523])
+
+```
+
+
+
 ### 接口
 
 ```go
@@ -1067,7 +1081,9 @@ import (
 )
 
 func main() {
+    //open(path string)只能打开、读取文件不能对文件进行写操作
 	file, error := os.Open("d:/goTest.txt") // For read access.
+    
 	if error != nil {
 		fmt.Println(error)
 	}
@@ -1085,16 +1101,362 @@ func main() {
 }
 ```
 
+```go
+//可以自定义打开文件、并且对文件进行读写操作
+func OpenFile(name string, flag int, perm FileMode) (*File, error)
+//flag参数表示打开文件用途，可以组合使用 O_RDONLY|O_APPEND
+const (
+        // Exactly one of O_RDONLY, O_WRONLY, or O_RDWR must be specified.
+   		//必须指定 O_RDONLY, O_WRONLY, or O_RDWR 其中一个
+        O_RDONLY int = syscall.O_RDONLY // open the file read-only.
+        O_WRONLY int = syscall.O_WRONLY // open the file write-only.
+        O_RDWR   int = syscall.O_RDWR   // open the file read-write.
+        // The remaining values may be or'ed in to control behavior.
+        O_APPEND int = syscall.O_APPEND // 向文件中添加数据
+        O_CREATE int = syscall.O_CREAT  // 如果不存在创建文件
+        O_EXCL   int = syscall.O_EXCL   // 和 O_CREATE 配合使用，文件必须不存在
+        O_SYNC   int = syscall.O_SYNC   // 同步打开文件 i/o
+        O_TRUNC  int = syscall.O_TRUNC  // if possible, truncate file when opened.
+)
+//FileMode 是一个unit32位，主要用作unix系统中，windows中无效
+const (
+        // The single letters are the abbreviations
+        // used by the String method's formatting.
+        ModeDir        FileMode = 1 << (32 - 1 - iota) // d: is a directory
+        ModeAppend                                     // a: append-only
+        ModeExclusive                                  // l: exclusive use
+        ModeTemporary                                  // T: temporary file; Plan 9 only
+        ModeSymlink                                    // L: symbolic link
+        ModeDevice                                     // D: device file
+        ModeNamedPipe                                  // p: named pipe (FIFO)
+        ModeSocket                                     // S: Unix domain socket
+        ModeSetuid                                     // u: setuid
+        ModeSetgid                                     // g: setgid
+        ModeCharDevice                                 // c: Unix character device, when ModeDevice is set
+        ModeSticky                                     // t: sticky
+        ModeIrregular                                  // ?: non-regular file; nothing else is known about this file
+
+        // Mask for the type bits. For regular files, none will be set.
+        ModeType = ModeDir | ModeSymlink | ModeNamedPipe | ModeSocket | ModeDevice | ModeIrregular
+
+        ModePerm FileMode = 0777 // Unix permission bits
+)
+```
+
+进行演示
+
+//===================== 文件的创建、写入
+
+```go
+
+file , err := os.OpenFile("/Users/linsen/Desktop/test.txt",
+                          os.O_CREATE | os.O_WRONLY,
+                          os.ModePerm)
+	//要及时关闭流
+	defer file.Close()
+
+	if err != nil {
+		fmt.Println("文件打开异常")
+	}else {
+        //向文件中写入字符串,最后返回的n代表写入的字节数，
+        //注意go默认使用utf-8编码所以一个汉字字节数是3，这里的n是18
+        n , err := file.WriteString("这世界我来了")
+	}
+
+
+```
+
+//======================= 文件内容添加
+
+```go
+
+file , err := os.OpenFile("/Users/linsen/Desktop/test.txt",
+                          os.O_RDWR|os.O_APPEND,
+                          os.ModePerm)
+defer file.Close()
+	if err != nil {
+		fmt.Println("文件打开异常")
+	}else {
+        //当打开文件的操作是append(添加)时，此时向文件中写入数据就会添加在文件的末尾
+        n , err := file.WriteString("这世界又我来了")
+	}
+
+
+```
+
+上文中写入还可以使用另一种写入方式
+
+```go
+bufio.NewWriter(file *File) (writer *Writer){}
+if file != nil {
+		 bufio.NewWriter(file)
+		 writer.WriteString("hello world！！")	 
+    //这一句代码不能省略，因为bufio是缓冲流，他会先将要写入的数据首先缓存在内部的字段 bytes中，然后手动调用Flush()时才真正将数据写入到磁盘中
+    	writer.Flush()
+    	defer file.Close()
+}
+
+```
 
 
 
 
 
+## goroutine和channel
 
-## 包的引用
+#### goroutine
+
+​	go语言协程、线程，go语言中有主线程和协程，一个主线程可以起多个协程，协程是轻量级的线程，
+
+​	协程特点：
+
+​		单独的栈空间
+
+​		共享堆内存空间，有相同的地址空间
+
+​		最重要的一点：和java语言中的多线程不同的是，go语言协程内存消耗十分少，因为java中的线程是操作系统的物理线程属于内核态，每次分配最小1M（手动分配有内存溢出风险），而go是逻辑态线程，动态分配线程中内存的大小，[具体看这篇博客](https://www.infoq.cn/article/a-million-go-routines-but-only-1000-java-threads)
+
+​		
+
+ ```go
+func main() {
+    //让次函数运行在开启的协程中
+	go printfln("%v go!",2,"jack")
+	go printfln("%v move！",3,"jack")
+	printfln("ready ！！！",0)
+    //线程睡眠五秒，经测试如果注释这代码，就直接运行完 printfln("ready ！！！",0) 程序会直接退出，(协程是基于主线程的，主线程运行结束协程自然也就销毁),所以睡眠几秒等待运行完成
+	time.Sleep(5 * time.Second)
+
+}
+
+func printfln(format string, second int64 ,key ... interface{}){
+	time.Sleep(time.Duration(second) * time.Second)
+	fmt.Printf(format + "\n",key)
+}
+ ```
+
+#### channel
+
+​	管道底层就是一个先进先出的队列,**其容量在初始化时就已经确定，不可改变**
+
+```go
+chanints := make(chan int, 3)
+//向管道中添加值
+chanints <- 4
+chanints <- 5
+chanints <- 6
+
+fmt.Printf("管道中的值：%v,管道本身地址值：%p",chanints,&chanints)
+
+//超出管道的最大容量直接报异常，deadLock
+chanints <- 9
+
+```
+
+
+
+​	
+
+## 包
+
+### 包的引用
 
 go语言是以包（package）管理项目，
 
-注意事项：
+引入语法
 
-​	一个文件夹下包下
+```go
+//引入单个包
+import "fmt"
+
+//引入多个包
+import (
+	"fmt"
+    "os"
+    //给包别名
+    util "io/util"
+)
+
+//注意如果引入的包在程序中没有被使用，在编译阶段会报异常
+
+```
+
+
+
+### [os](https://golang.org/pkg/os/)
+
+​	作用：提供了可以直接操作系统的接口，打开文件..
+
+os.Args [] string
+
+​	提供了系统命令行输入的变量，
+
+```go
+/src/file.go hhh 89 ij
+//此时os.Args中存放的就是 【hhh, 89, ij】
+
+for index,arg := range os.Args {
+
+	fmt.Printf("输入参数 %d ：%v \n",index,arg)
+
+}
+//执行如下命令 go run os/operateFile.go helo 327645 jhsdgf ，
+//输出如下
+
+//执行文件的临时目录
+输入参数 0 ：/var/folders/jj/rktcg3vj4ysb6wv1z9t5xvqr0000gn/T/go-build164164760/b001/exe/operateFile 
+
+输入参数 1 ：helo 
+输入参数 2 ：327645 
+输入参数 3 ：jhsdgf 
+
+```
+
+### [flag](https://golang.org/pkg/flag/)
+
+作用：实现命令行标签解析
+
+在os包中有个os.Args 可以输出文件执行的输入参数，但是存在局限性，当我们想自定义标签 -u、-p这些，可以用flag包解析
+
+```go
+//当我们想要像linux中那样时， ... -u roor -p 1234
+//可以使用flag包
+
+//func String(name string, value string, usage string) *string
+//name 表示标签名，value是默认值，usage 是用法说明，返回解析的结果的指针
+//这个方法通用Int、Double、Float.....,参数都是一样的
+name := flag.String("-u","root","填写用户名")
+fmt.Println("用户名是 ：",*name)
+
+//func StringVar(p *string, name string, value string, usage string)
+//和上面方法不同的是，将返回值放在方法入参上，意义一样
+//其他类型也是 IntVar(..) DoubleVar(..)
+
+```
+
+### [encoding/json](https://golang.org/pkg/encoding/json/)
+
+```go
+//json可以对go语言中的数据进行序列化和反序列化
+
+type Person struct {
+    //可以使用这种形式对解析对象的字段取别名，序列化后的字符串就是别名的字段
+	Name string	`json:"name"`		
+	Age int		`json:"age"`
+	hobby int 	`json:"hobby"`
+}
+
+func main()  {
+
+	p := Person{"jack",12,13}
+
+	result := MarshalPoxy(p)
+
+	fmt.Printf("结果是 %v",string(result))
+    //结果是 {"name":"jack","age":12}
+    //这里注意，经测试如果结构中字段为私有，则序列化后的字符串不显示该字段
+}
+
+func MarshalPoxy(v interface{}) (str []byte){
+
+	str , err := json.Marshal(v)
+
+	if err != nil {
+		fmt.Printf("解析数据为jsonStr 出现异常 ：%v",err)
+	}
+
+	return str
+
+}
+```
+
+
+
+反序列化
+
+```go
+//反序列化
+func UnMarshalPoxy(dateStr []byte,v interface{})  {
+
+	//注意这里传入的必须是指针类型否则报异常 InvalidUnmarshalError
+	err := json.Unmarshal(dateStr,v)
+
+	if err != nil {
+		fmt.Printf("反序列化异常 ： %v\n",err)
+	}
+
+}
+
+p := Person{"jack",12,13}
+str := MarshalPoxy(p)
+
+var person Person
+UnMarshalPoxy(str,&person)
+
+fmt.Printf("反序列化 ： %v\n",person)
+
+```
+
+### testing
+
+ go内置的轻量级单元测试框架，
+
+规定：单元测试 的文件命名必须是{file}_test.go,测试 的方法名Test{funcName}
+
+假设要测试的方法如下
+
+```go
+func MarshalPoxy(v interface{}) (str []byte,err error){
+
+	str , err = json.Marshal(v)
+
+	if err != nil {
+		fmt.Printf("解析数据为jsonStr 出现异常 ：%v",err)
+	}
+	fmt.Printf("结果是 %v \n",string(str))
+	return str,err
+
+}
+
+```
+
+现在创建一个文件名字Json_test.go
+
+```go
+package main
+
+import "testing"
+
+func TestMarshalPoxy(t *testing.T) {
+
+	by , err := MarshalPoxy(12432534543)
+
+	if err != nil{
+		t.Errorf("运行异常 :%v",err)
+	}else {
+		t.Logf("运行正常 ，result ： %v",string(by))
+	}
+
+}
+```
+
+执行命令 
+
+```shell
+#如果测试单个文件所有函数必须要加上测试文件的原文件
+go test -v Json.go Json_test.go
+#如果想要执行当前目录下所有测试用例，可以直接
+go test -v
+#也可以直接测试单个方法
+go test -v -test.run TestMarshalPoxy 
+```
+
+### runtime
+
+对前go运行的系统进行相关操作，比如goroutine（协程）、reflect（反射）
+
+```go
+//获取当前cpu数量
+runtime.NumCPU()
+```
+
