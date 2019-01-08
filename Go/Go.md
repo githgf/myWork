@@ -1237,9 +1237,44 @@ func printfln(format string, second int64 ,key ... interface{}){
 
 #### channel
 
-​	管道底层就是一个先进先出的队列,**其容量在初始化时就已经确定，不可改变**
+​	go语言中用来做协程之间通信的管道，也叫信道
+
+​	信道底层就是一个先进先出的队列,**其容量在初始化时就已经确定，不可改变**
+
+​	**信道是引用类型**
+
+3信道分类：
+
+​	信道根据数据的存储分为两类
+
+​	无缓冲信道、缓冲信道
+
+##### 无缓冲信道：
+
+​	信道不储存数据，只做数据的流转，相当于一个空容量的管道
 
 ```go
+//声明一个无缓冲的管道不需要设置管道长度，相当于给一个默认的长度0
+chanints := make(chan int)
+
+//信道的容量 0,长度 0读
+fmt.Printf("信道的容量 %d,长度 %d",cap(chanints),len(chanints))
+
+//无缓冲信道的数据读取和写入和缓冲信道一样没有区别
+chanints <- 9
+l :=<- chanints
+
+fmt.Printf("读取的数据 %d",l)
+```
+
+**注意事项**：无缓冲信道因为不能存储数据，所以在向信道中写入数据时必须及时读取，换句话说**无缓冲信道数据的读取和写入不能再同一个线程(协程)中**，否则会造成死锁
+
+##### 有缓冲信道
+
+​	和无缓冲信道相反，用作数据的存储
+
+```go
+//因为需要数据的存储所以缓冲信道在声明时必须设置大小，且设置后信道长度、容量不能被改变
 chanints := make(chan int, 3)
 //向管道中添加值
 chanints <- 4
@@ -1251,9 +1286,111 @@ fmt.Printf("管道中的值：%v,管道本身地址值：%p",chanints,&chanints)
 //超出管道的最大容量直接报异常，deadLock
 chanints <- 9
 
+//从管道中取值
+k := <- chanints
+//******同理如果管道中没有数据同时信道没有关闭，此时再进行取值操作报异常 ，deadLock
+close(chanints)
+
+value := <- chanints
+fmt.Printf("value = %d \n",value)
+value = <- chanints
+fmt.Printf("value = %d \n",value)
+value = <- chanints//信道关闭之后，读取已经没有数据的信道，其值一直是 0
+fmt.Printf("value = %d \n",value)
+
+
+//如果编译器发现一个管道只有写没有读取数据，则该管道会阻塞，一直等到有数据读取
+
+//信道在声明时还可以设置只读、只写
+//只写
+func writeData(channel chan <- int){}
+//只读
+func readData(channel <- chan int)  {}
+
 ```
 
 
+
+总结两者之间的区别：
+
+​	无缓冲信道是阻塞式的，读写必须同时执行
+
+​	无缓冲信道中不能存储数据
+
+
+
+##### 信道的关闭
+
+​	信道的关闭只需要 调用 func close( c chan<- Type) 即可
+
+​	须知：
+
+​	1.信道关闭只有无法再向其中写入数据，否则 deadLock
+
+​	1.信道的关闭只是关闭了写入数据，读取数据不受影响，信道关闭之后，读取已经没有数据的信道，其值一直是 0
+
+​	2.信道关闭之后无法再次关闭否则，deadLock
+
+##### 信道数据的遍历
+
+​	不管何种方式遍历
+
+```go
+
+//方式一
+for{
+    if value,ok:= <- chanints;ok{
+        flag++
+        fmt.Printf("第%d个的value = %d \n",flag,value)
+    }else{
+        break;//表示channel已经被关闭，退出循环
+    }
+}
+//方式二：for-rang
+for i := range chanints {
+    flag++
+    fmt.Printf("第%d个的value = %d \n",flag,i)
+}
+//以上方式读取之前如果没有关闭信道，就会造成死锁
+
+//方式三：即使信道没有关闭也不会造成线程死锁
+for k := 1; k <= cap(chanints); k++ {
+    p := <- chanints
+    fmt.Printf("第%d个的value = %d \n",k,p)
+}
+
+//方式四：也可以有效避免因为没有关闭信道的死锁问题
+END:
+for  {
+		select {
+		case v := <- chanints:{
+				fmt.Printf("读取的数据 %d \n",v)
+			}
+		default:
+			break END
+		}
+
+	}
+
+for  {
+		select {
+		case v := <- chanints:{
+				fmt.Printf("读取的数据 %d \n",v)
+			}
+		default:
+			goto END
+		}
+
+	}
+END:
+
+```
+
+
+
+##### 阻塞
+
+​	无缓冲信道在进行数据读写是都是阻塞的,只有读没有写、只有写没有读都会造成死锁
 
 ​	
 
