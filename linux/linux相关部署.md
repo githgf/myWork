@@ -170,7 +170,7 @@ ssh相当于一张去远程服务器的通行证，在远程服务器上配置�
 		密码：hgf19950626hgf
 
 在(B)服务器端配置
-	1.生成公钥秘钥：
+	1.生成公钥秘钥：s
 		ssh-keygen     生成的秘钥文件在/root/.ssh/下
 	2.添加需要连接远程服务的服务器的认证
 		ssh-copy-id -i /root/.ssh/id_rsa.pub root@118.25.194.36
@@ -187,9 +187,17 @@ ssh相当于一张去远程服务器的通行证，在远程服务器上配置�
 	连接命令；
 		ssh [-l login_name] [-p port] [user@]hostname
 		此时不要密码即可登录
+	
+如果想要在连接时影藏端口，域名，如下配置
+vim ~/.ssh/config
+
+Host 别名
+	Hostname 主机
+	Port	 端口
+	User	用户名
 ```
 
-### centos 7 发送邮件
+## centos 7 发送邮件
 搭建环境：
 1.首先确保有sendmail 或mailx 插件，centos7 默认是安装的
 2.安装证书
