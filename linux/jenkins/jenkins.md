@@ -282,10 +282,62 @@ cat $TOMCAT_HOME/logs/catalina.out
 
 ![](publish-config-2.png)
 
+#### git parameter
+
+作用:
+
+​	可以将根据git上的分支进行相应的构建
+
+![](https://wiki.jenkins.io/download/attachments/58917601/image2018-9-20_22-0-7.png?version=1&modificationDate=1537473611000&api=v2)
+
+这样在进行项目构建时可以根据构建指定分支的项目
+
+![gitparameter_plugin](gitparameter_plugin.png)
+
+​	
+
+####  Version Number
+
+jenkins优雅的生成版本号
+
+![version_number_pulign](version_number_pulign.png)
+
+
+
 ### 踩过的坑
 
 1. Unknown lifecycle phase mvn
   原因：jenkins 在勾选maven时自动拼接mvn，此时，maven命令不能在写 mvn 。。。
+
 2. maven构建时打包失败
   原因：
-  ​	1.缺少插件 Maven Integration plugin
+  ```markdown
+  1.缺少插件 Maven Integration plugin	
+  ```
+
+3.在jenkins宿主机上能执行的命令，在jenkins构建时报异常 各种失败
+
+​	原因：
+
+​		jenkins执行shell命令是用的是jenkins用户，并不是root
+
+​	解决方案：
+
+​		修改jenkins执行用户
+
+```shell
+# 打开配置文件
+vim /etc/sysconfig/jenkins
+# 修改$JENKINS_USER，并去掉当前行注释
+$JENKINS_USER="root"
+#修改jenkins文件夹权限
+chown -R root:root /var/lib/jenkins
+chown -R root:root /var/cache/jenkins
+chown -R root:root /var/log/jenkins
+# 重启Jenkins（若是其他方式安装的jenkins则重启方式略不同）
+service jenkins restart
+# 查看Jenkins进程所属用户
+ps -ef | grep jenkins
+# 若显示为root用户，则表示修改完成
+```
+
