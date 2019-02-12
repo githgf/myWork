@@ -401,26 +401,26 @@ docker run --name mysql5.6
 # Description: 在最新版本的 centos 系统中安装jdk，构建可执行java的环境
 
 #基础镜像
-FROM java:8 
+FROM java:8(太大了，也可以考虑 frolvlad/alpine-oraclejdk8:slim、openjdk:8-jdk-alpine)
 MAINTAINER fanying "hgf1641197217@163.com"
 
 VOLUME /tmp
 
 #拷贝springboot 应用的jar（这里的jar地址不要有前缀）
-ADD webflux.jar /opt/webflux/webflux.jar
+ADD webflux.jar /webflux.jar
 
 #对外暴露端口
 EXPOSE 8080
 
 #CMD java -jar /opt/webflux/webflux.jar > /opt/webflux/webflux.log 2>&1 &
 #docker run 指令运行的命令
-ENTRYPOINT ["java","jar","/opt/webflux/webflux.jar",">","/opt/webflux/webflux.log","2>&1","&"]
+ENTRYPOINT ["java","-jar","/webflux.jar",">","/opt/webflux/webflux.log","2>&1","&"]
 ```
 
 二：构建镜像
 
 ```shell
-docker build -f {dockerFile所在的路径} -t {镜像名：版本}
+docker build -f {dockerFile所在的路径} -t {镜像名：版本} .
 #注意dockerFile最好和file中需要加入的jar包、文件...在同一个目录下，否则docker 会在临时创建的文件中寻找文件
 ```
 
@@ -434,3 +434,10 @@ docker run -d \
         {容器的id}
 ```
 
+失败记录：
+
+​	1.找不到可执行的main方法或者jar
+
+​		maven文件添加节点<packaging>jar</packaging>
+
+​	

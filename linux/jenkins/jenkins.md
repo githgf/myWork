@@ -1,5 +1,142 @@
 # Jenkins
 
+# 权限控制原理
+
+Jenkins安装目录中有一个users文件夹、config.xml文件，用来权限的控制
+
+## 密码控制
+
+users文件夹下都是创建的用户名文件夹，里面只有一个文件config.xml
+
+```xml
+<!-- 以admin用户为例 -->
+<?xml version='1.1' encoding='UTF-8'?>
+<user>
+  <fullName>admin</fullName>
+  <properties>
+    <jenkins.security.ApiTokenProperty>
+      <apiToken>{AQAAABAAAAAwKGR9qmT2Q3zdS7pPwj6eL4bx5/3lgHoI0BH9tbOL5aD9ilSipTDfAl/dj03GDx5uuXdIuAa7pudMXzIsla2bIw==}</apiToken>
+    </jenkins.security.ApiTokenProperty>
+    <hudson.model.MyViewsProperty>
+      <views>
+        <hudson.model.AllView>
+          <owner class="hudson.model.MyViewsProperty" reference="../../.."/>
+          <name>all</name>
+          <filterExecutors>false</filterExecutors>
+          <filterQueue>false</filterQueue>
+          <properties class="hudson.model.View$PropertyList"/>
+        </hudson.model.AllView>
+      </views>
+    </hudson.model.MyViewsProperty>
+    <hudson.model.PaneStatusProperties>
+      <collapsed/>
+    </hudson.model.PaneStatusProperties>
+    <hudson.search.UserSearchProperty>
+      <insensitiveSearch>true</insensitiveSearch>
+    </hudson.search.UserSearchProperty>
+    <hudson.security.HudsonPrivateSecurityRealm_-Details>
+<!-- 这里的密码是由加密算法生成 -->     <passwordHash>#jbcrypt:$2a$10$1Ei3F42fPdw2Q4Nz.RTPXOYd6E6NrMdPDxBl4PtZjlndLtV0YwQHC</passwordHash>
+    </hudson.security.HudsonPrivateSecurityRealm_-Details>
+    <jenkins.security.LastGrantedAuthoritiesProperty>
+      <roles>
+        <string>authenticated</string>
+      </roles>
+      <timestamp>1532453069681</timestamp>
+    </jenkins.security.LastGrantedAuthoritiesProperty>
+  </properties>
+</user>
+```
+
+上文中的加密算法是[JBCrypt](http://www.mindrot.org/projects/jBCrypt/)，是一个不可逆的算法 ：String hashed = BCrypt.hashpw(password, BCrypt.gensalt());
+
+只能通过加密两个密码然后进行比对，看是否一致
+
+## 权限控制
+
+Jenkins工作目录下也有一个config.xml文件，用来控制权限
+
+策略 -> 角色组 -> 权限 ->  用户
+
+```xml
+
+<?xml version='1.1' encoding='UTF-8'?>
+<hudson>
+  <disabledAdministrativeMonitors>
+    <string>hudson.diagnosis.ReverseProxySetupMonitor</string>
+  </disabledAdministrativeMonitors>
+  <version>2.121.1</version>
+  <installStateName>RUNNING</installStateName>
+  <numExecutors>2</numExecutors>
+  <mode>NORMAL</mode>
+  <useSecurity>true</useSecurity>
+    <!-- 权限控制策略 -->
+  <authorizationStrategy class="com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy">
+    <!-- 角色组 -->
+      <roleMap type="projectRoles">
+      	<!-- 角色配置 -->
+          <role name="goprod" pattern="go.*">
+        <!-- 角色权限 -->
+        <permissions>
+          <permission>hudson.model.Item.Cancel</permission>
+          <permission>hudson.model.Item.Read</permission>
+        </permissions>
+         <!-- 将角色分给指定的用户 -->     
+        <assignedSIDs>
+          <sid>goadmin</sid>
+          <sid>rootadmin</sid>
+        </assignedSIDs>
+      </role>
+    </roleMap>
+    <roleMap type="globalRoles">
+      <role name="admin" pattern=".*">
+        <permissions>
+          <permission>hudson.model.View.Delete</permission>
+          <permission>hudson.model.Computer.Connect</permission>
+          <permission>hudson.model.Run.Delete</permission>
+          <permission>com.cloudbees.plugins.credentials.CredentialsProvider.ManageDomains</permission>
+          <permission>hudson.model.Computer.Create</permission>
+          <permission>hudson.model.View.Configure</permission>
+          <permission>hudson.model.Computer.Build</permission>
+          <permission>hudson.model.Item.Configure</permission>
+          <permission>hudson.model.Hudson.Administer</permission>
+          <permission>hudson.model.Item.Cancel</permission>
+          <permission>hudson.model.Item.Read</permission>
+          <permission>com.cloudbees.plugins.credentials.CredentialsProvider.View</permission>
+          <permission>hudson.model.Computer.Delete</permission>
+          <permission>hudson.model.Item.Build</permission>
+          <permission>hudson.scm.SCM.Tag</permission>
+          <permission>hudson.model.Item.Discover</permission>
+          <permission>hudson.model.Hudson.Read</permission>
+          <permission>com.cloudbees.plugins.credentials.CredentialsProvider.Update</permission>
+          <permission>hudson.model.Item.Create</permission>
+          <permission>hudson.model.Item.Workspace</permission>
+          <permission>com.cloudbees.plugins.credentials.CredentialsProvider.Delete</permission>
+          <permission>hudson.model.Computer.Provision</permission>
+          <permission>hudson.model.View.Read</permission>
+          <permission>hudson.model.View.Create</permission>
+          <permission>hudson.model.Item.Delete</permission>
+          <permission>hudson.model.Computer.Configure</permission>
+          <permission>com.cloudbees.plugins.credentials.CredentialsProvider.Create</permission>
+          <permission>hudson.model.Computer.Disconnect</permission>
+          <permission>hudson.model.Run.Update</permission>
+        </permissions>
+        <assignedSIDs>
+          <sid>admin</sid>
+          <sid>baosong.han</sid>
+        </assignedSIDs>
+      </role>
+      。。。。。
+    </roleMap>
+    <roleMap type="slaveRoles"/>
+  </authorizationStrategy>
+ ........
+</hudson>
+```
+
+
+
+
+
 ## 安装
 
 ### 1.docker方式
@@ -151,4 +288,4 @@ cat $TOMCAT_HOME/logs/catalina.out
   原因：jenkins 在勾选maven时自动拼接mvn，此时，maven命令不能在写 mvn 。。。
 2. maven构建时打包失败
   原因：
-  	1.缺少插件 Maven Integration plugin
+  ​	1.缺少插件 Maven Integration plugin
