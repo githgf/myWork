@@ -95,7 +95,10 @@
 
 4.在follower数据更新完成之后回馈leader ack
 
-5.leader收到所有follower的ack 之后向producer发送ack
+5.leader 收到所有 ISR 中的 replication 的 ACK 后，增加 HW（high watermark，最后 commit
+的 offset）并向 producer 发送 ACK 
+
+![消息推送](消息推送.png)
 
 ## 订阅消息
 
@@ -112,6 +115,16 @@ consumer想要订阅消息时会从指定topic中的partition中拉取消息，�
 ![kafka集群模型](kafka集群模型.png)
 
 如图所示kafka中所有的分区读写操作都是leader分区
+
+## zookeeper在kafka集群中作用
+
+Apache Kafka的一个关键依赖是Apache Zookeeper，它是一个分布式配置和同步服务。 Zookeeper是Kafka代理和消费者之间的协调接口。 Kafka服务器通过Zookeeper集群共享信息。 Kafka在Zookeeper中存储基本元数据，例如关于主题，代理，消费者偏移(队列读取器)等的信息。
+
+由于所有关键信息存储在Zookeeper中，并且它通常在其整体上复制此数据，因此Kafka代理/ Zookeeper的故障不会影响Kafka集群的状态。 Kafka将恢复状态，一旦Zookeeper重新启动。 这为Kafka带来了零停机时间。 Kafka代理之间的领导者选举也通过使用Zookeeper在领导者失败的情况下完成。
+
+zookeeper存储大致如下
+
+![zookeeper集群](zookeeper集群.png)
 
 # 和传统的消息系统相比较不同
 
@@ -141,11 +154,41 @@ kafka做的更好。通过并行topic的parition —— kafka提供了顺序保�
 
 一个消费者如果接收了一个partition中的消息，那么会在接下去的数据处理中固定消费该partition中的消息，因为要维护offset。
 
-# zookeeper在kafka集群中作用
 
-Apache Kafka的一个关键依赖是Apache Zookeeper，它是一个分布式配置和同步服务。 Zookeeper是Kafka代理和消费者之间的协调接口。 Kafka服务器通过Zookeeper集群共享信息。 Kafka在Zookeeper中存储基本元数据，例如关于主题，代理，消费者偏移(队列读取器)等的信息。
 
-由于所有关键信息存储在Zookeeper中，并且它通常在其整体上复制此数据，因此Kafka代理/ Zookeeper的故障不会影响Kafka集群的状态。 Kafka将恢复状态，一旦Zookeeper重新启动。 这为Kafka带来了零停机时间。 Kafka代理之间的领导者选举也通过使用Zookeeper在领导者失败的情况下完成。
+# kafka如何保证数据一致性
+
+## 数据同步机制（ISR）
+
+ISR(in-sync-replica)，kafka数据同步采用的机制
+
+上文中消息推送的最后一步是leader需要等待其所有的followers都发送ack之后再向producer返回ack
+
+1. leader会维护一个与其基本保持同步的Replica列表，该列表称为ISR(in-sync Replica)，每个Partition都会有一个ISR，而且是由leader动态维护 
+2. 如果一个flower比一个leader落后太多，或者超过一定时间未发起数据复制请求，则leader将其重ISR中移除 
+3. 当ISR中所有Replica都向Leader发送ACK时，leader才commit
+leader挂掉了，从它的follower中选举一个作为leader，并把挂掉的leader从ISR中移除，继续处理数据。一段时间后该leader重新启动了，它知道它之前的数据到哪里了，尝试获取它挂掉后leader处理的数据，获取完成后它就加入了ISR。
+
+# kafka如何保证容灾能力
+
+## 选主机制
+
+kafka中partition的leader是由controller决定的
+
+选取controller策略
+
+1.当前每个broker都会在controller path(/controller)中创建一个watch
+
+2.如果一旦controller出现问题，就会删除此controller path数据，此时该watch就会被fire，所有的broker都会去创建新的controller path，但是只有一个会成功
+
+3.创建成功即为新的controller，失败的broker需要在新的controller中重新注册watch
+
+选取leader partition策略
+
+- 从Zookeeper中读取当前分区的所有ISR(in-sync replicas)集合
+- 调用配置的分区选择算法选择分区的leader
+
+
 
 # 安装部署
 
