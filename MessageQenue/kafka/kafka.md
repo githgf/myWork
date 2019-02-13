@@ -215,19 +215,19 @@ broker.id=0
 # Maps listener names to security protocols, the default is for them to be the same. See the config documentation for more details
 #listener.security.protocol.map=PLAINTEXT:PLAINTEXT,SSL:SSL,SASL_PLAINTEXT:SASL_PLAINTEXT,SASL_SSL:SASL_SSL
 
-# The number of threads that the server uses for receiving requests from the network and sending responses to the network
+# 接收响应请求的线程数量
 num.network.threads=3
 
-# The number of threads that the server uses for processing requests, which may include disk I/O
+# 磁盘io线程数量
 num.io.threads=8
 
-# The send buffer (SO_SNDBUF) used by the socket server
+# socket发送缓冲区大小
 socket.send.buffer.bytes=102400
 
-# The receive buffer (SO_RCVBUF) used by the socket server
+# socket接收缓冲区大小
 socket.receive.buffer.bytes=102400
 
-# The maximum size of a request that the socket server will accept (protection against OOM)
+# socket请求的数据最大值
 socket.request.max.bytes=104857600
 
 
@@ -239,53 +239,42 @@ log.dirs=/tmp/kafka-logs
 # 默认分区数量
 num.partitions=1
 
-# The number of threads per data directory to be used for log recovery at startup and flushing at shutdown.
-# This value is recommended to be increased for installations with data dirs located in RAID array.
+# 每个数据目录中的线程数，用于在启动时日志恢复，并在关闭时刷新。
 num.recovery.threads.per.data.dir=1
 
 ############################# Internal Topic Settings  #############################
-# The replication factor for the group metadata internal topics "__consumer_offsets" and "__transaction_state"
-# For anything other than development testing, a value greater than 1 is recommended for to ensure availability such as 3.
+#对于除了开发测试之外的其他任何东西，group元数据内部主题的复制因子“__consumer_offsets”和“__transaction_state”，建议值大于1，以确保可用性(如3)
 offsets.topic.replication.factor=1
 transaction.state.log.replication.factor=1
 transaction.state.log.min.isr=1
 
 ############################# Log Flush Policy #############################
 
-# Messages are immediately written to the filesystem but by default we only fsync() to sync
-# the OS cache lazily. The following configurations control the flush of data to disk.
-# There are a few important trade-offs here:
-#    1. Durability: Unflushed data may be lost if you are not using replication.
-#    2. Latency: Very large flush intervals may lead to latency spikes when the flush does occur as there will be a lot of data to flush.
-#    3. Throughput: The flush is generally the most expensive operation, and a small flush interval may lead to excessive seeks.
-# The settings below allow one to configure the flush policy to flush data after a period of time or
-# every N messages (or both). This can be done globally and overridden on a per-topic basis.
+# 消息直接被写入文件系统，但是默认情况下我们仅仅调用fsync()以延迟的同步系统缓存
+# 这些有一些重要的权衡
+# 1. 持久性:如果不使用复制，未刷新的数据可能会丢失。
+# 2. 延迟:非常大的刷新间隔可能会在刷新时导致延迟，因为将会有大量数据刷新。
+# 3. 吞吐量:刷新通常是最昂贵的操作，而一个小的刷新间隔可能会导致过多的搜索。
+# 下面的设置允许你去配置刷新策略，每隔一段时间刷新或者一次N个消息（或者两个都配置）。这可以在全局范围内完成，并在每个主题的基础上重写。 every N messages (or both). This can be done globally and overridden on a per-topic basis.
 
-# The number of messages to accept before forcing a flush of data to disk
+# 在强制刷新数据到磁盘内允许接收消息的数量
 #log.flush.interval.messages=10000
 
-# The maximum amount of time a message can sit in a log before we force a flush
+# 在强制刷新之前，消息可以在日志中停留的最长时间
 #log.flush.interval.ms=1000
 
 ############################# Log Retention Policy #############################
-
-# The following configurations control the disposal of log segments. The policy can
-# be set to delete segments after a period of time, or after a given size has accumulated.
-# A segment will be deleted whenever *either* of these criteria are met. Deletion always happens
-# from the end of the log.
-
 # 日志文件保留时间
 log.retention.hours=168
 
-# A size-based retention policy for logs. Segments are pruned from the log unless the remaining
-# segments drop below log.retention.bytes. Functions independently of log.retention.hours.
+#日志文件保留的最大数据量
+#和上一个. log.retention.hours 参数配置形成日志保留策略，如果满足其中之一条件日志删除
 #log.retention.bytes=1073741824
 
-# The maximum size of a log segment file. When this size is reached a new log segment will be created.
+# kafka分区从操作系统角度看就是一堆的segment文件，这里指segment文件限制的最大数据量大小
 log.segment.bytes=1073741824
 
-# The interval at which log segments are checked to see if they can be deleted according
-# to the retention policies
+# 检查文件大小的间隔
 log.retention.check.interval.ms=300000
 
 ############################# Zookeeper #############################
@@ -308,4 +297,69 @@ group.initial.rebalance.delay.ms=0
 ```
 
 
+
+3.启动kafka
+
+```shell
+#客户端模式，一旦退出停止运行
+./kafka-server-start.sh ../config/server.properties
+#后台运行模式
+nohup ./bin/kafka-server-start.sh ./config/server.properties > /dev/null 2>&1 &
+```
+
+## kafka相关api操作
+
+在$KAFKA_HOME目录下存放了很多*.sh文件，kafka就是依靠这些文件进行api操作
+
+### topic增删改查
+
+```shell
+#增加指定的topic
+
+#zookeeper 				代表zookeeper的地址
+#replication-factor 	分区副本的个数
+#partitions				分区的数量
+#topic					topic的命名
+./bin/kafka-topics.sh --create \
+--zookeeper localhost:2181 \
+--replication-factor 1 \
+--partitions 2 \
+--topic hgf
+
+#查看topic的信息
+
+#查看所有的topic列表
+./bin/kafka-topics.sh --zookeeper localhost:2181 --list
+#查看指定的topic信息
+./bin/kafka-topics.sh --zookeeper localhost:2181 --describe --topic hgf
+
+#删除topic
+#1.在kafka中标记此topic被删除(没有被彻底删除)
+./bin/kafka-topics  --delete --zookeeper 192.168.100.1:2181  --topic  hgf
+#2.删除kafka中关于此topic的所有数据
+#打开之前在server.properties中的log日志存放目录	
+cd /tmp/kafka-logs/
+rm -rf hgf-*/
+#3.删除此topic在zookeeper中的存储信息
+$ZOOKEEPER_HOME/zkCli.sh 
+rmr /brokers/topics/【topic name】
+
+#修改topic相关属性
+#分区数量只能增加不能减少
+kafka-topics.sh  --alter --zookeeper  shb01:2181 --topic hgf --partition 3
+```
+
+### 消息的推送和消费
+
+```shell
+#推送消息到指定的topic
+#broker-list broker代理集群的地址，多个用,相隔
+ ./bin/kafka-console-producer.sh --broker-list localhost:9092 --topic hgf
+
+#消费指定的消息
+./bin/kafka-console-consumer.sh \
+--bootstrap-server localhost:9092 \
+--topic hgf \
+--from-beginning
+```
 
