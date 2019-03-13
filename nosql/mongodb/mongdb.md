@@ -8,7 +8,27 @@ MongoDB 是一个基于分布式文件存储的数据库。由 C++ 语言编写�
 
 MongoDB 是一个介于关系数据库和非关系数据库之间的产品，是非关系数据库当中功能最丰富，最像关系数据库的。
 
+## 特性
 
+面向集合存储
+
+动态查询
+
+查询监视
+
+赋值和高效的故障转移
+
+自动分片以支持云级别的伸缩性
+
+## 应用场景
+
+需要进行地理编码、经纬度计算的应用数据存储，如快递行业
+
+业务需求多变，数据表结构经常发生变化，快速进行迭代开发的系统
+
+大量日志、缓存存储
+
+不常使用join查询
 
 
 
@@ -117,6 +137,48 @@ sc.exe create MongoDB binPath= "\"D:\nosql\mongdb\Server\3.4\bin\mongod.exe\" --
 集合：数据文档的存放体（类似于数据表）
 
 文档：数据实体（类似于数据表的行数据）
+
+
+
+## ObjectId生成规则
+
+是一个12个字节的16位进制字符串，总共就是24位的字符串
+
+### 3.4版本之前
+
+a 4-byte value representing the seconds since the Unix epoch,
+
+​	4个字节的Unix时戳
+
+a 3-byte machine identifier,
+
+​	3个字节的机器码唯一标识
+
+a 2-byte process id, and
+
+​	2个字节的进程id
+
+a 3-byte counter, starting with a random value.
+
+​	3个字节的自增计数器值，保证在同一秒同一个机器同一个进程产生不一样的数字
+
+
+
+### 3.4版本即以后
+
+
+
+a 4-byte value representing the seconds since the Unix epoch,
+
+​	4个字节的Unix时戳
+
+a 5-byte random value, and
+
+​	5个字节的随机数
+
+a 3-byte counter, starting with a random value.
+
+​	3个字节的自增计数器值
 
 
 
