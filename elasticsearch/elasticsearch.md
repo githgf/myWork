@@ -82,13 +82,14 @@ employee：类型
 
 - [ ]   ```json
        GET /megacorp/employee/_search
-        ```
+       ```
 
 搜索姓氏为 ``Smith`` 的雇员
 
 - [ ] ```json
-      1.方式一
-      GET /megacorp/employee/_search?q=last_name:Smith
+  1.方式一
+  GET /megacorp/employee/_search?q=last_name:Smith
+  ```
 
 
       方式二

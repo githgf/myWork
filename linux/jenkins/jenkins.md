@@ -176,11 +176,42 @@ docker方式直接就是ip:port，
 ```
 
 ## 通过war包方式
-	将官网上的war包下载到本地，放在tomcat的webapp下即可
-	注意：可能jenkins会启动失败，查看日志也许是内存不足，因为tomcat的分配缓存不够
-	修改${tomcat}/conf/context.xml 文件
-	在<context> 节点中加入
-	    <Resources cachingAllowed="true" cacheMaxSize="100000" />
+```markdown
+# 将其放在Tomcat下
+将官网上的war包下载到本地，放在tomcat的webapp下即可
+注意：可能jenkins会启动失败，查看日志也许是内存不足，因为tomcat的分配缓存不够
+修改${tomcat}/conf/context.xml 文件
+在<context> 节点中加入
+    <Resources cachingAllowed="true" cacheMaxSize="100000" />
+# 直接用java运行war包
+```
+
+## Jenkins api
+
+通过 {ip}:{port}/api/  查看所有api接口详情
+
+```shell
+# 获取指定job信息:  type:json、xml
+get {url}/job/{jobName}/api/{type}
+# 查看所有项目信息  type:json、xml
+get {url}/api/{type}
+# 查看指定job的config.xml
+{url}/job/tool/config.xml
+# 创建job
+url中指定 name={jobName}
+post请求，
+需要发送config.xml，可以以上文为模板
+请求头：Content-Type: application/xml
+Authorization：配置用户名、密码
+curl -X POST \
+  'http://118.25.194.36:8084/createItem?name=tool-copy' \
+  -H 'Authorization: Basic amVua2luczpqZW5raW5z' \
+  -H 'Content-Type: application/xml' \
+```
+
+
+
+
 
 ## jenkins +spring boot +maven +github实现自动部署并且通过域名访问
 
@@ -264,7 +295,67 @@ cat $TOMCAT_HOME/logs/catalina.out
 
 ```
 
-### 插件使用
+
+
+## 企业级部署（部署在docker上）
+
+### 参数化构建
+
+git 分支拉取（需要下载git parameter插件）
+
+作用构建时从指定的远程拉取分支，可以动态指定分支进行构建
+
+![docker_build_git_paramter](docker_build_git_paramter.png)
+
+全局字符串参数
+
+作用:项目全局参数
+
+![docker_builder_string_param](docker_builder_string_param.png)
+
+选项参数
+
+指定当前操作的类型：比如说指定回滚或者打包上线
+
+![docker_build_operation_param](docker_build_operation_param.png)
+
+### git 配置
+
+![docker_build_git_parameter](docker_build_git_parameter.png)
+
+### 版本号生成
+
+需要下载插件
+
+作用：可以将此版本号作为回滚的标识
+
+![docker_build_version](docker_build_version.png)
+
+### 构建时操作
+
+#### maven打包
+
+![docker_build_maven](docker_build_maven.png)
+
+
+
+#### 执行shell命令
+
+发送jar包到项目运行所在宿主机（如果项目运行的docker宿主机和Jenkins宿主机是同一个可忽略）
+
+![docker_build_shell](/Users/linsen/windWork/study/mywork/work/linux/jenkins/docker_build_shell.jpg)
+
+
+
+### 构建后操作
+
+ssh调用远程服务器的命令构建镜像并部署项目在docker中
+
+![docker_build_ssh](docker_build_ssh.png)
+
+
+
+## 插件使用
 
 #### publish over ssh
 

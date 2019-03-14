@@ -304,6 +304,27 @@ func main(){
 }
 ```
 
+函数可以赋值和被赋值，换言之, 函数也可以作为ReceiverType, 定义自己的method. 实例:
+
+```go
+/* 比如说 http包下有个方法是这样的 ： 将指定路径的请求用指定的函数处理*/
+http.HandleFunc(pattern string, handler func(ResponseWriter, *Request))
+/* 
+	在go中要发送http请求，必须实现handler这个接口的，但是上文中的方法没有直接实现ServeHTTP这个方法，但是用了一个巧妙的方法，
+*/
+type HandlerFunc func(ResponseWriter, *Request)
+
+func (f HandlerFunc) ServeHTTP(w ResponseWriter, r *Request){
+    f(w,r)
+}
+/*
+	声明一个function类型的对象HandlerFunc，实现ServeHTTP这个方法，这样也能将指定的路由映射到指定的方法中
+*/
+
+```
+
+
+
 #### 闭包：
 
 闭包是匿名函数，可在动态编程中使用  
@@ -570,9 +591,10 @@ type struct_variable_type struct {
    ...
    member definition;
 }
-
+// 如果结构体首字母小写，则视为私有，在别的包中访问不到，
 type Book struct{
-	author	string
+    // 属性名大小写也是，建议大写，小写，容易导致序列化会丢失属性对应的值
+	Author	string
 	title	string
 	id		int
 }
@@ -1202,6 +1224,76 @@ if file != nil {
 
 
 
+## 反射
+
+```go
+// 反射获取类型，任何类型都可以
+typeOf := reflect.TypeOf("hello")
+// 反射获取值，任何类型都可以
+valueOf := reflect.ValueOf("hello")
+// 反射获取字段名，属性，注意仅限于结构体类型
+
+user := User{name: "hello", age: 12}
+
+of := reflect.TypeOf(user)
+valueOf := reflect.ValueOf(user)
+
+// 返回类型
+fmt.Println("TypeOf() ===> ", of)
+// 返回值
+fmt.Println("valueOf() ==> ", valueOf )
+// 返回结构体中属性的数量
+fmt.Println(" of.NumField() ==> ",  of.NumField())
+
+// 反射获取属性值
+for i := 0; i < of.NumField() ; i++  {
+    field := of.Field(i)
+
+    fmt.Printf("%s: %v = %v\n", field.Name, field.Type, valueOf.Field(i))
+
+}
+
+// 反射调用无参函数
+// 注意方法必须是公有的
+func (user User) TestNoArgs() {
+	fmt.Println("testing........")
+}
+name := valueOf.MethodByName("TestNoArgs")
+values := make([]reflect.Value,0)
+name.Call(values)
+
+// 反射调用有参函数
+// 注意方法必须是公有的
+func (user User) Test(string2 string) {
+	fmt.Println("testing........",string2)
+}
+
+name := valueOf.MethodByName("Test")
+values = []reflect.Value{reflect.ValueOf("hello")}
+name.Call(values)
+// 调用时参数必须是reflect.Value 类型数组
+
+// 反射赋值
+var num float64 = 1.2345
+fmt.Println("old value of pointer:", num)
+
+// 通过reflect.ValueOf获取num中的reflect.Value，注意，参数必须是指针才能修改其值
+pointer := reflect.ValueOf(&num)
+newValue := pointer.Elem()
+
+fmt.Println("type of pointer:", newValue.Type())
+fmt.Println("settability of pointer:", newValue.CanSet())
+
+// 重新赋值
+newValue.SetFloat(77)
+fmt.Println("new value of pointer:", num)
+
+```
+
+
+
+
+
 ## goroutine和channel
 
 #### goroutine
@@ -1596,4 +1688,48 @@ go test -v -test.run TestMarshalPoxy
 //获取当前cpu数量
 runtime.NumCPU()
 ```
+
+### http
+
+```go
+/*
+	发送接收http请求，搭建web服务器
+*/
+type CusHandler struct {
+
+}
+
+func (mux *CusHandler) ServeHTTP(w http.ResponseWriter, r *http.Request){
+	n, err := io.WriteString(w, "hello server")
+	if err != nil {
+		fmt.Printf("请求有误")
+	}
+	fmt.Printf(string(n))
+}
+
+func cusHandler(w http.ResponseWriter, r *http.Request)  {
+	io.WriteString(w, "hello server for func")
+}
+
+func main()  {
+	// 方式一：
+	http.Handle("/one",&CusHandler{})
+	// 方式二：其实底层还是调用的方法一，将传入的function转为handler
+    http.HandleFunc("/two",cusHandler)
+	//http.ListenAndServe(":8081",nil)
+
+	//静态文件服务器
+	//http.ListenAndServe(":8082",http.FileServer(http.Dir(".")))
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/hello",cusHandler)
+	mux.HandleFunc("/yes",cusHandler)
+
+	http.ListenAndServe(":8083",mux)
+}
+```
+
+
+
+
 

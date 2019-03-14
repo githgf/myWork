@@ -1,0 +1,152 @@
+<project>
+<actions/>
+<description/>
+<keepDependencies>false</keepDependencies>
+<properties>
+<hudson.model.ParametersDefinitionProperty>
+<parameterDefinitions>
+<net.uaznia.lukanus.hudson.plugins.gitparameter.GitParameterDefinition plugin="git-parameter@0.9.6">
+<name>origin_branch</name>
+<description/>
+<uuid>95afc3c4-0c92-47ee-af80-d8dbc03a6f7c</uuid>
+<type>PT_BRANCH_TAG</type>
+<branch/>
+<tagFilter>*</tagFilter>
+<branchFilter>.*</branchFilter>
+<sortMode>NONE</sortMode>
+<defaultValue/>
+<selectedValue>NONE</selectedValue>
+<quickFilterEnabled>false</quickFilterEnabled>
+<listSize>5</listSize>
+</net.uaznia.lukanus.hudson.plugins.gitparameter.GitParameterDefinition>
+<hudson.model.StringParameterDefinition>
+<name>repo_push</name>
+<description>阿里云镜像托管中心</description>
+<defaultValue>registry.cn-hangzhou.aliyuncs.com/hegaofan/fanying</defaultValue>
+<trim>false</trim>
+</hudson.model.StringParameterDefinition>
+<hudson.model.StringParameterDefinition>
+<name>oldVersion</name>
+<description>回滚的版本号</description>
+<defaultValue/>
+<trim>false</trim>
+</hudson.model.StringParameterDefinition>
+<hudson.model.StringParameterDefinition>
+<name>image</name>
+<description>工具项目</description>
+<defaultValue>tool-copy</defaultValue>
+<trim>false</trim>
+</hudson.model.StringParameterDefinition>
+<hudson.model.ChoiceParameterDefinition>
+<name>operation</name>
+<description>Deploy：打包 RollBack：回滚</description>
+<choices class="java.util.Arrays$ArrayList">
+<a class="string-array">
+<string>Deploy</string>
+<string>RollBack</string>
+</a>
+</choices>
+</hudson.model.ChoiceParameterDefinition>
+</parameterDefinitions>
+</hudson.model.ParametersDefinitionProperty>
+</properties>
+<scm class="hudson.plugins.git.GitSCM" plugin="git@3.9.1">
+<configVersion>2</configVersion>
+<userRemoteConfigs>
+<hudson.plugins.git.UserRemoteConfig>
+<url>git@github.com:githgf/tool.git</url>
+<credentialsId>399c603f-4708-4b44-b405-fd1513c03d8d</credentialsId>
+</hudson.plugins.git.UserRemoteConfig>
+</userRemoteConfigs>
+<branches>
+<hudson.plugins.git.BranchSpec>
+<name>$origin_branch</name>
+</hudson.plugins.git.BranchSpec>
+</branches>
+<doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
+<submoduleCfg class="list"/>
+<extensions/>
+</scm>
+<canRoam>true</canRoam>
+<disabled>false</disabled>
+<blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+<blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+<triggers/>
+<concurrentBuild>false</concurrentBuild>
+<builders>
+<hudson.tasks.Maven>
+<targets>clean package -Dmaven.test.skip=true -P aliyun_hgf</targets>
+<mavenName>maven-3.5.4</mavenName>
+<usePrivateRepository>false</usePrivateRepository>
+<settings class="jenkins.mvn.FilePathSettingsProvider">
+<path>/home/maven-3.5.4/conf/settings.xml</path>
+</settings>
+<globalSettings class="jenkins.mvn.FilePathGlobalSettingsProvider">
+<path>/home/maven-3.5.4/conf/settings.xml</path>
+</globalSettings>
+<injectBuildVariables>false</injectBuildVariables>
+</hudson.tasks.Maven>
+<hudson.tasks.Shell>
+<command>
+cd $WORKSPACE/target mv *.jar file.jar rsync -auv --delete -P file.jar zlw:/opt/$image
+</command>
+</hudson.tasks.Shell>
+</builders>
+<publishers>
+<jenkins.plugins.publish__over__ssh.BapSshPublisherPlugin plugin="publish-over-ssh@1.20.1">
+<consolePrefix>SSH: </consolePrefix>
+<delegate plugin="publish-over@0.22">
+<publishers>
+<jenkins.plugins.publish__over__ssh.BapSshPublisher plugin="publish-over-ssh@1.20.1">
+<configName>zlw</configName>
+<verbose>false</verbose>
+<transfers>
+<jenkins.plugins.publish__over__ssh.BapSshTransfer>
+<remoteDirectory/>
+<sourceFiles/>
+<excludes/>
+<removePrefix/>
+<remoteDirectorySDF>false</remoteDirectorySDF>
+<flatten>false</flatten>
+<cleanRemote>false</cleanRemote>
+<noDefaultExcludes>false</noDefaultExcludes>
+<makeEmptyDirs>false</makeEmptyDirs>
+<patternSeparator>[, ]+</patternSeparator>
+<execCommand>
+echo "operation : ${operation}" cd /opt/$image/ if [ $operation == Deploy ];then sh devops.sh deploy $repo_push $image ${BUILD_VERSION} fi
+</execCommand>
+<execTimeout>120000</execTimeout>
+<usePty>false</usePty>
+<useAgentForwarding>false</useAgentForwarding>
+</jenkins.plugins.publish__over__ssh.BapSshTransfer>
+</transfers>
+<useWorkspaceInPromotion>false</useWorkspaceInPromotion>
+<usePromotionTimestamp>false</usePromotionTimestamp>
+</jenkins.plugins.publish__over__ssh.BapSshPublisher>
+</publishers>
+<continueOnError>false</continueOnError>
+<failOnError>false</failOnError>
+<alwaysPublishFromMaster>false</alwaysPublishFromMaster>
+<hostConfigurationAccess class="jenkins.plugins.publish_over_ssh.BapSshPublisherPlugin" reference="../.."/>
+</delegate>
+</jenkins.plugins.publish__over__ssh.BapSshPublisherPlugin>
+</publishers>
+<buildWrappers>
+<org.jvnet.hudson.tools.versionnumber.VersionNumberBuilder plugin="versionnumber@1.9">
+<versionNumberString>
+${JOB_name}_${BUILD_DATE_FORMATTED, "yyyyMMdd"}_ ${BUILDS_TODAY}
+</versionNumberString>
+<projectStartDate>2019-01-19 16:00:00.0 UTC</projectStartDate>
+<environmentVariableName>BUILD_VERSION</environmentVariableName>
+<environmentPrefixVariable/>
+<oBuildsToday/>
+<oBuildsThisWeek/>
+<oBuildsThisMonth/>
+<oBuildsThisYear/>
+<oBuildsAllTime/>
+<worstResultForIncrement>SUCCESS</worstResultForIncrement>
+<skipFailedBuilds>false</skipFailedBuilds>
+<useAsBuildDisplayName>false</useAsBuildDisplayName>
+</org.jvnet.hudson.tools.versionnumber.VersionNumberBuilder>
+</buildWrappers>
+</project>
