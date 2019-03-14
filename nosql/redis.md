@@ -1,45 +1,82 @@
-# Redis
 
-## NoSQL
 
-### 概念：
+# NoSQL
+
+## 概念：
 
 ​	NoSQL(NoSQL = Not Only SQL )，意即“不仅仅是SQL”，泛指非关系型的数据库。
 
 ​	随着互联网web2.0网站的兴起，传统的关系数据库在应付web2.0网站，特别是超大规模和高并发的SNS类型的web2.0纯动态网站已经显得力不从心，暴露了很多难以克服的问题，而非关系型的数据库则由于其本身的特点得到了非常迅速的发展。NoSQL数据库的产生就是为了解决大规模数据集合多重数据种类带来的挑战，尤其是大数据应用难题，包括超大规模数据的存储。
 
-### 优势：
+## 优势：
 
 高性能、易扩展、多样灵活的数据模型
 
-### 	分类
+## 	分类
 
 - K-V键值对形式存储：redis、
 - 文档型数据库：CouchDB、MongoDB
 - 图关系数据库：构建关系图谱（不是图形存储）
 - 列存储数据库：Cassandra, HBase
 
-### 分布式缓存的CAP原理
+## 分布式缓存的CAP原理
 
-- 传统的数据库的ACID:
+传统的数据库的ACID:
 
-  ​原子性（Atomicity）、一致性（Consistency）、持久性（Durability）、独立性（Isolation）
+​原子性（Atomicity）、一致性（Consistency）、持久性（Durability）、独立性（Isolation）
 
-- CAP
+CAP
 
-  强一致性（Consistency）、可用性（Availability）、分区容错（Partition tolerance）
+​	强一致性（Consistency）、可用性（Availability）、分区容错（Partition tolerance）
 
-- 在现实的开发环境中，cap只能3选2，也就是
+在现实的开发环境中，cap只能3选2，也就是
 
-  ca ： 传统Oracle数据库
+ca ： 传统Oracle数据库
 
-  cp：大多数网站架构的选择
+cp：大多数网站架构的选择
 
-  ap： Redis、MongoDB
+ap： Redis、MongoDB
 
+# redis基本概述
 
+## 是什么
 
+REmote DIctionary Server(Redis) 是一个由Salvatore Sanfilippo写的key-value存储系统。
 
+Redis是一个开源的使用ANSI C语言编写、遵守BSD协议、支持网络、可基于内存亦可持久化的日志型、Key-Value数据库，并提供多种语言的API。
+
+它通常被称为数据结构服务器，因为值（value）可以是 字符串(String), 哈希(Map), 列表(list), 集合(sets) 和 有序集合(sorted sets)等类型。
+
+## 特点
+
+Redis 与其他 key - value 缓存产品有以下三个特点：
+
+- Redis支持数据的持久化，可以将内存中的数据保存在磁盘中，重启的时候可以再次加载进行使用。
+
+- Redis不仅仅支持简单的key-value类型的数据，同时还提供list，set，zset，hash等数据结构的存储。
+
+- Redis支持数据的备份，即master-slave模式的数据备份。
+
+  ​
+
+## 优势
+
+- 性能极高 – Redis能读的速度是110000次/s,写的速度是81000次/s 。
+- 丰富的数据类型 – Redis支持二进制案例的 Strings, Lists, Hashes, Sets 及 Ordered Sets 数据类型操作。
+- 原子 – Redis的所有操作都是原子性的，意思就是要么成功执行要么失败完全不执行。单个操作是原子性的。多个操作也支持事务，即原子性，通过MULTI和EXEC指令包起来。
+- 丰富的特性 – Redis还支持 publish/subscribe, 通知, key 过期等等特性。
+
+## 应用场景
+
+配合关系型数据库做高速缓存
+
+存储高并发但是数据结构简单
+
+分布式事务锁
+
+消息队列
+
+# 怎么玩
 
 ## 安装、启动：
 
@@ -383,6 +420,30 @@ watch监控机制
 ​	在事务执行时如果被监控的对象被修改，事务队列不会执行
 
 
+
+## 执行lua脚本
+
+redis可以直接执行lua脚本，可以实现很多复杂的查询
+
+命令格式
+
+```shell
+eval "....script" key_nums KEYS[1] KEYS[2].... ARGV[1] ARGV[2]...
+#key_nums 代表的是key数量
+#key\argv 类似或者说就是对应redis中key-value
+```
+
+在script中可以使用redis的方法api
+
+redis.call()
+
+redis.pcall()
+
+这两个方法效果大致相同， 他们唯一的区别是当redis命令执行结果返回错误时， redis.call()将返回给调用者一个错误，而redis.pcall()会将捕获的错误以Lua表的形式返回
+
+脚本执行时默认原子性的，也就是说类似被redis事务包围，可以用做分布式锁
+
+也可以将lua命令单独提前写在lua脚本中，redis-cli --eval 命令方式运行
 
 ## 主从复制
 
@@ -940,8 +1001,4 @@ SerizializUtils.java
           }
       ```
 
-
-      }
-
-      ```
 
