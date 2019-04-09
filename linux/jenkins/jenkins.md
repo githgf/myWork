@@ -343,7 +343,7 @@ git 分支拉取（需要下载git parameter插件）
 
 发送jar包到项目运行所在宿主机（如果项目运行的docker宿主机和Jenkins宿主机是同一个可忽略）
 
-![docker_build_shell](/Users/linsen/windWork/study/mywork/work/linux/jenkins/docker_build_shell.jpg)
+![docker_build_shell](docker_build_shell.jpg)
 
 
 
