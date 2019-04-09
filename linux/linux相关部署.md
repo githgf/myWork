@@ -237,7 +237,7 @@ Host 别名
   echo "#{content}" | mailx -v -s "#{subject}" #{receiverMail}
 
 ```
-###centos定时任务
+### centos定时任务
 定时任务的文件放在两个地方：
     1. /etc/crontab     这个还不清楚，像是全局配置
     2. /var/spool/cron 这里才是各个用户的定时任务，比如说root用户就是名为root的文件
@@ -252,7 +252,7 @@ Host 别名
     删除任务：crontab -r
     查看任务：crontab -l
 
-###centos 修改ssh的端口，增加安全
+### centos 修改ssh的端口，增加安全
   1.修改ssh策略，保存
     vim /etc/ssh/sshd_config
     在Port 22 增加一行
@@ -278,7 +278,7 @@ curl -X GET --header 'Accept: */*' 'http://hzexpress.wisready.com/express/client
 curl -X GET --header 'Accept: */*' 'http://rydexpress.wisready.com/express/clientserver/data/expressdatatwoexportmail'
 curl -X GET --header 'Accept: */*' 'http://rydexpress.wisready.com/express//clientserver/data/expresscoddataexporttomail'
 
-###centos 添加jdk环境变量
+### centos 添加jdk环境变量
 
 ```shell
   export JAVA_HOME=/home/jdk1.8.0_181
@@ -288,7 +288,7 @@ curl -X GET --header 'Accept: */*' 'http://rydexpress.wisready.com/express//clie
 http://mirror.bit.edu.cn/apache/maven/maven-3/3.5.4/binaries/apache-maven-3.5.4-bin.tar.gz
 
 
-###centos 将指定的ip隐藏，端口映射访问
+### centos 将指定的ip隐藏，端口映射访问
   当我们不想将实际的端口暴露时，我们可以通过防火墙的转发功能，添加端口映射，这样我们就可以通过访问不规则的端口号访问正常的服务
 ```shell
   #开启ip隐藏（最后的permanent 不可少表示永久有效，否则不生效）
@@ -300,4 +300,20 @@ http://mirror.bit.edu.cn/apache/maven/maven-3/3.5.4/binaries/apache-maven-3.5.4-
     firewall-cmd --add-forward-port=port=80:proto=tcp:toport=8080
   #查看是否映射成功
     firewall-cmd --list-forward-ports
+```
+### expect 实现模拟人机交互
+比如说ssh需要输入密码，用命令实现就得用expect
+```shell
+  #安装expect
+  yum install expect
+  #编写脚本
+  	#!/bin/expect
+	set timeout 30  
+	spawn ssh root@172.17.0.7
+	expect "(yes/no)?"
+	send "yes\n"
+	expect "password:"
+	send "密码\n"
+	interact
+	exit
 ```
